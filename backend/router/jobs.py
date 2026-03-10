@@ -21,8 +21,81 @@ from training import (
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
 BASE_MODELS = [
-    "mlx-community/Llama-3.2-1B-Instruct-4bit",
-    "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+    # ── Qwen3 (neueste Generation, März 2026) ────────────────────────────
+    {
+        "id": "mlx-community/Qwen3-1.7B-4bit",
+        "name": "Qwen3 1.7B (4-bit) 🆕",
+        "size": "~1.1 GB",
+        "quality": "Gut",
+        "languages": "DE, EN, ZH, +29",
+        "train_time": "~5 Min",
+        "recommended_for": "Schnelle Tests (neuestes Qwen)",
+    },
+    {
+        "id": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+        "name": "Qwen3 4B Instruct (4-bit) 🆕",
+        "size": "~2.5 GB",
+        "quality": "Sehr gut",
+        "languages": "DE, EN, ZH, +29",
+        "train_time": "~12 Min",
+        "recommended_for": "Beste Qualität/Speed-Balance ⭐",
+    },
+    {
+        "id": "lmstudio-community/DeepSeek-R1-0528-Qwen3-8B-MLX-4bit",
+        "name": "Qwen3 8B (DeepSeek R1, 4-bit) 🆕",
+        "size": "~5 GB",
+        "quality": "Exzellent",
+        "languages": "DE, EN, ZH, +29",
+        "train_time": "~25 Min",
+        "recommended_for": "Produktion + Reasoning ⭐⭐",
+    },
+    # ── Llama 3 ──────────────────────────────────────────────────────────
+    {
+        "id": "mlx-community/Llama-3.2-1B-Instruct-4bit",
+        "name": "Llama 3.2 1B Instruct (4-bit)",
+        "size": "~800 MB",
+        "quality": "Basis",
+        "languages": "DE, EN, +20",
+        "train_time": "~2 Min",
+        "recommended_for": "Schnellste Tests",
+    },
+    {
+        "id": "mlx-community/Llama-3.2-3B-Instruct-4bit",
+        "name": "Llama 3.2 3B Instruct (4-bit)",
+        "size": "~2 GB",
+        "quality": "Gut",
+        "languages": "DE, EN, +20",
+        "train_time": "~8 Min",
+        "recommended_for": "Kleine Projekte",
+    },
+    {
+        "id": "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
+        "name": "Llama 3.1 8B Instruct (4-bit)",
+        "size": "~5 GB",
+        "quality": "Sehr gut",
+        "languages": "DE, EN, +30",
+        "train_time": "~25 Min",
+        "recommended_for": "Produktion",
+    },
+    # ── Mistral / Gemma ──────────────────────────────────────────────────
+    {
+        "id": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+        "name": "Mistral 7B Instruct v0.3 (4-bit)",
+        "size": "~4 GB",
+        "quality": "Sehr gut",
+        "languages": "DE, EN, FR, +",
+        "train_time": "~20 Min",
+        "recommended_for": "Europäische Sprachen",
+    },
+    {
+        "id": "mlx-community/gemma-3-4b-it-4bit",
+        "name": "Gemma 3 4B Instruct (4-bit)",
+        "size": "~3 GB",
+        "quality": "Sehr gut",
+        "languages": "DE, EN, +35",
+        "train_time": "~12 Min",
+        "recommended_for": "Google-Modell",
+    },
 ]
 
 

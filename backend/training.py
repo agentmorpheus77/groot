@@ -126,7 +126,7 @@ async def run_training_job(
         "--data", str(dataset_dir),
         "--iters", str(iters),
         "--batch-size", str(batch_size),
-        "--lora-layers", "16",
+        "--num-layers", "16",
         "--save-every", str(max(10, iters // 10)),
         "--adapter-path", str(adapter_path),
         "--learning-rate", str(learning_rate),
@@ -231,6 +231,50 @@ async def run_fuse_model(job_id: int, base_model: str, adapter_path: str) -> str
         raise
 
 
+def _clean_mlx_output(raw: str, prompt: str) -> str:
+    """
+    Strip all mlx_lm noise from inference output:
+    - Deprecation warnings
+    - ========== separators
+    - Token stats (Prompt: X tokens, Generation: ...)
+    - Peak memory lines
+    - Echo of the input prompt
+    Returns only the clean generated text.
+    """
+    lines = raw.split("\n")
+    clean = []
+    skip_patterns = [
+        "Calling `python",
+        "directly is deprecated",
+        "Use `mlx_lm",
+        "==========",
+        "Prompt:",
+        "Generation:",
+        "Peak mem",
+        "tokens-per-sec",
+        "tokens, ",
+        "found in sys.modules",
+        "unpredictable behaviour",
+        "RuntimeWarning",
+        "Fetching",
+        "frozen runpy",
+        "it/s]",
+        "0%|",
+        "100%|",
+    ]
+    for line in lines:
+        if any(p in line for p in skip_patterns):
+            continue
+        clean.append(line)
+    result = "\n".join(clean).strip()
+    # Remove echo of prompt if present
+    if prompt in result:
+        result = result.replace(prompt, "").strip()
+    # Remove EOS tokens
+    result = result.replace("</s>", "").replace("<s>", "").strip()
+    return result
+
+
 async def run_inference(model_path: str, prompt: str, max_tokens: int = 256) -> str:
     """
     Run inference against a fused model using mlx_lm.generate.
@@ -244,17 +288,9 @@ async def run_inference(model_path: str, prompt: str, max_tokens: int = 256) -> 
     ]
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        output = result.stdout.strip()
-        # Extract just the generated text (remove the echo of the prompt)
-        if prompt in output:
-            output = output.replace(prompt, "").strip()
-        return output or result.stderr.strip()
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        output = result.stdout + result.stderr
+        return _clean_mlx_output(output, prompt) or "⚠️ No response generated"
     except subprocess.TimeoutExpired:
         return "⚠️ Inference timed out after 120s"
     except Exception as e:
@@ -263,7 +299,7 @@ async def run_inference(model_path: str, prompt: str, max_tokens: int = 256) -> 
 
 async def run_adapter_inference(base_model: str, adapter_path: str, prompt: str, max_tokens: int = 256) -> str:
     """
-    Run inference with adapter (without fusing).
+    Run inference with LoRA adapter (without fusing).
     """
     python = sys.executable
     cmd = [
@@ -275,16 +311,9 @@ async def run_adapter_inference(base_model: str, adapter_path: str, prompt: str,
     ]
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        output = result.stdout.strip()
-        if prompt in output:
-            output = output.replace(prompt, "").strip()
-        return output or result.stderr.strip()
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        output = result.stdout + result.stderr
+        return _clean_mlx_output(output, prompt) or "⚠️ No response generated"
     except subprocess.TimeoutExpired:
         return "⚠️ Inference timed out after 120s"
     except Exception as e:
