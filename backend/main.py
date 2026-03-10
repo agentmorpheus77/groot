@@ -48,9 +48,15 @@ async def health():
 
 # Serve React frontend
 FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+FRONTEND_PUBLIC = Path(__file__).parent.parent / "frontend" / "public"
 
 if FRONTEND_DIST.exists():
+    # Serve static assets (compiled JS/CSS)
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
+
+    # Serve public directory (translations, icons, etc.)
+    if FRONTEND_PUBLIC.exists():
+        app.mount("/locales", StaticFiles(directory=str(FRONTEND_PUBLIC / "locales")), name="locales")
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
