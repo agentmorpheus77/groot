@@ -14,17 +14,14 @@ import { listDatasets, listJobs, createJob, deleteJob, type Dataset, type Job } 
 import { formatDate, formatDuration, formatLoss } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 
-const BASE_MODELS = [
-  { value: "mlx-community/Llama-3.2-1B-Instruct-4bit", labelKey: "training.models.llama" },
-  { value: "mlx-community/Mistral-7B-Instruct-v0.3-4bit", labelKey: "training.models.mistral" },
-]
-
+type BaseModel = { id: string; name: string; size?: string; recommended_for?: string }
 type LogLine = { type: string; msg: string }
 
 export default function Training() {
   const { t } = useTranslation()
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
+  const [baseModels, setBaseModels] = useState<BaseModel[]>([])
   const [showForm, setShowForm] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -37,7 +34,7 @@ export default function Training() {
   const [form, setForm] = useState({
     name: "",
     dataset_id: "",
-    base_model: BASE_MODELS[0].value,
+    base_model: "",
     epochs: 3,
     learning_rate: 0.0001,
     max_seq_length: 512,
@@ -48,6 +45,11 @@ export default function Training() {
   const load = () => {
     listDatasets().then(r => setDatasets(r.data)).catch(console.error)
     listJobs().then(r => setJobs(r.data)).catch(console.error)
+    fetch("/api/jobs/models").then(r => r.json()).then(d => {
+      const models: BaseModel[] = d.models || []
+      setBaseModels(models)
+      if (models.length > 0) setForm(p => ({ ...p, base_model: p.base_model || models[0].id }))
+    }).catch(console.error)
   }
 
   useEffect(() => {
@@ -196,8 +198,11 @@ export default function Training() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {BASE_MODELS.map(m => (
-                    <SelectItem key={m.value} value={m.value}>{t(m.labelKey)}</SelectItem>
+                  {baseModels.map(m => (
+                    <SelectItem key={m.id} value={m.id}>
+                      <span className="font-medium">{m.name}</span>
+                      {m.size && <span className="text-muted-foreground ml-2 text-xs">{m.size}</span>}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
