@@ -112,13 +112,60 @@ class CreateJobRequest(BaseModel):
 
 @router.get("/models")
 async def list_base_models():
-    return {"models": BASE_MODELS}
+    """Return BASE_MODELS plus any locally cached hub models."""
+    from pathlib import Path
+    import os
+
+    hub_cached = []
+    hf_cache = Path.home() / ".cache" / "huggingface" / "hub"
+    if hf_cache.exists():
+        for entry in hf_cache.iterdir():
+            if not entry.is_dir() or not entry.name.startswith("models--"):
+                continue
+            raw = entry.name[len("models--"):]
+            model_id = raw.replace("--", "/", 1)
+            # Check if already in BASE_MODELS
+            if any(m["id"] == model_id for m in BASE_MODELS):
+                continue
+            # Check it has actual content
+            snapshots = entry / "snapshots"
+            has_content = False
+            if snapshots.exists():
+                for snap in snapshots.iterdir():
+                    if snap.is_dir() and any(True for _ in snap.iterdir()):
+                        has_content = True
+                        break
+            if not has_content:
+                continue
+            name_part = model_id.split("/")[-1]
+            name = " ".join(w.capitalize() for w in name_part.replace("-", " ").replace("_", " ").split())
+            hub_cached.append({
+                "id": model_id,
+                "name": f"{name} 📦",
+                "size": "Lokal",
+                "quality": "Lokal gecacht",
+                "languages": "Mehrsprachig",
+                "train_time": "~?",
+                "recommended_for": "Aus Model Hub",
+            })
+
+    return {"models": BASE_MODELS + hub_cached}
 
 
 @router.post("")
 async def create_job(req: CreateJobRequest, background_tasks: BackgroundTasks):
-    if req.base_model not in BASE_MODELS:
-        raise HTTPException(400, f"Unknown base model. Choose from: {BASE_MODELS}")
+    # Validate base model (check against id fields in BASE_MODELS list)
+    known_ids = {m["id"] for m in BASE_MODELS}
+    # Also allow any cached hub model
+    from pathlib import Path
+    hf_cache = Path.home() / ".cache" / "huggingface" / "hub"
+    if hf_cache.exists():
+        for entry in hf_cache.iterdir():
+            if entry.is_dir() and entry.name.startswith("models--"):
+                raw = entry.name[len("models--"):]
+                known_ids.add(raw.replace("--", "/", 1))
+    if req.base_model not in known_ids:
+        raise HTTPException(400, f"Unknown base model: {req.base_model}")
 
     # Check dataset exists
     conn = get_db()

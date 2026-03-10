@@ -92,4 +92,43 @@ export const chatWithModel = (id: number, prompt: string, max_tokens = 256) =>
   )
 export const getStats = () => api.get<Stats>("/models/stats/summary")
 
+// ── Model Hub ────────────────────────────────────────────────────────────────
+
+export interface HubModel {
+  id: string
+  name: string
+  family: string
+  size_label: string
+  downloads: number
+  likes: number
+  tags: string[]
+  languages: string[]
+  description: string
+  license: string
+  is_cached: boolean
+  created_at: string
+}
+
+export interface CachedModel {
+  model_id: string
+  cache_path: string
+  size_bytes: number
+  size_label: string
+}
+
+export const listHubModels = () =>
+  api.get<{ models: HubModel[]; cached: boolean }>("/hub/models")
+
+export const startDownload = (model_id: string) =>
+  api.post<{ download_id: string; status: string }>("/hub/download", { model_id })
+
+export const listCachedModels = () =>
+  api.get<{ models: CachedModel[]; total_size_bytes: number; total_size_label: string }>("/hub/cached")
+
+export const listAvailableForTraining = () =>
+  api.get<{ models: { id: string; name: string; size: string }[] }>("/hub/available-for-training")
+
+export const invalidateHubCache = () =>
+  api.post("/hub/invalidate-cache")
+
 export default api

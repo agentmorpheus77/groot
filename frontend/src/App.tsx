@@ -6,6 +6,7 @@ import Datasets from "./pages/Datasets"
 import Training from "./pages/Training"
 import Models from "./pages/Models"
 import Chat from "./pages/Chat"
+import ModelHub from "./pages/ModelHub"
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="hub" element={<ModelHub />} />
           <Route path="datasets" element={<Datasets />} />
           <Route path="training" element={<Training />} />
           <Route path="models" element={<Models />} />

@@ -17,6 +17,7 @@ from database import init_db
 from router.datasets import router as datasets_router
 from router.jobs import router as jobs_router
 from router.models import router as models_router
+from router.hub import router as hub_router
 
 # Init DB
 init_db()
@@ -39,6 +40,7 @@ app.add_middleware(
 app.include_router(datasets_router)
 app.include_router(jobs_router)
 app.include_router(models_router)
+app.include_router(hub_router)
 
 
 @app.get("/api/health")

@@ -6,6 +6,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "hub": "Model Hub",
     "datasets": "Datasets",
     "training": "Training",
     "models": "Models",
@@ -208,6 +209,22 @@
     "model1": "Model 1",
     "model2": "Model 2",
     "emptyState": "Start a conversation with your fine-tuned model!"
+  },
+  "hub": {
+    "title": "Model Hub",
+    "subtitle": "Download MLX models directly from HuggingFace",
+    "searchPlaceholder": "Search models...",
+    "statsModels": "models available",
+    "statsCached": "locally cached",
+    "statsSize": "used",
+    "cached": "Cached",
+    "cachedReady": "Ready for training",
+    "download": "Download",
+    "downloading": "Downloading...",
+    "downloaded": "downloaded",
+    "downloadError": "Download failed",
+    "loadingModels": "Loading models from HuggingFace...",
+    "noResults": "No models found"
   },
   "errors": {
     "loadFailed": "Failed to load",

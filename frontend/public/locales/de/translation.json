@@ -6,6 +6,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "hub": "Model Hub",
     "datasets": "Datensätze",
     "training": "Training",
     "models": "Modelle",
@@ -208,6 +209,22 @@
     "model1": "Modell 1",
     "model2": "Modell 2",
     "emptyState": "Starte eine Unterhaltung mit deinem Fine-Tune Modell!"
+  },
+  "hub": {
+    "title": "Model Hub",
+    "subtitle": "Lade MLX-Modelle direkt von HuggingFace herunter",
+    "searchPlaceholder": "Modell suchen...",
+    "statsModels": "Modelle verfügbar",
+    "statsCached": "lokal gecacht",
+    "statsSize": "belegt",
+    "cached": "Gecacht",
+    "cachedReady": "Bereit für Training",
+    "download": "Herunterladen",
+    "downloading": "Wird heruntergeladen...",
+    "downloaded": "heruntergeladen",
+    "downloadError": "Fehler beim Herunterladen",
+    "loadingModels": "Lade Modelle von HuggingFace...",
+    "noResults": "Keine Modelle gefunden"
   },
   "errors": {
     "loadFailed": "Fehler beim Laden",

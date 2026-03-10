@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import { useTheme } from "next-themes"
 import {
   LayoutDashboard, Database, Zap, BookOpen, MessageSquare,
-  Sun, Moon, Globe, TreePine, ChevronRight, Menu, X
+  Sun, Moon, Globe, TreePine, ChevronRight, Menu, X, Store,
 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator"
 
 const navItems = [
   { path: "/dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
+  { path: "/hub",       icon: Store,           labelKey: "nav.hub"       },
   { path: "/datasets",  icon: Database,        labelKey: "nav.datasets"  },
   { path: "/training",  icon: Zap,             labelKey: "nav.training"  },
   { path: "/models",    icon: BookOpen,        labelKey: "nav.models"    },
