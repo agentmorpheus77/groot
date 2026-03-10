@@ -51,6 +51,7 @@ def init_db():
         created_at TEXT NOT NULL,
         error_message TEXT,
         final_loss REAL,
+        metadata TEXT DEFAULT '{}',
         FOREIGN KEY (dataset_id) REFERENCES datasets(id)
     );
 
@@ -71,7 +72,20 @@ def init_db():
     """)
 
     conn.commit()
+
+    # Migrations: add columns added after initial schema
+    _run_migrations(conn)
+
     conn.close()
+
+
+def _run_migrations(conn):
+    """Apply schema migrations for columns added after initial release."""
+    cur = conn.cursor()
+    existing_cols = {row[1] for row in cur.execute("PRAGMA table_info(jobs)")}
+    if "metadata" not in existing_cols:
+        cur.execute("ALTER TABLE jobs ADD COLUMN metadata TEXT DEFAULT '{}'")
+        conn.commit()
 
 
 def dict_from_row(row):

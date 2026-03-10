@@ -159,7 +159,9 @@
     "delete": {
       "title": "Job löschen",
       "confirm": "Möchtest du diesen Training-Job wirklich löschen?"
-    }
+    },
+    "resume": "Fortsetzen",
+    "resumeTitle": "Training fortsetzen ab letztem Checkpoint"
   },
   "models": {
     "title": "Modell-Bibliothek",

@@ -105,6 +105,7 @@ async def run_training_job(
     batch_size: int,
     iters: int,
     on_status_change,
+    resume_adapter_path: str = None,
 ):
     """
     Runs mlx_lm.lora training as a subprocess.
@@ -129,6 +130,12 @@ async def run_training_job(
         "--num-layers", "16",
         "--save-every", str(max(10, iters // 10)),
         "--adapter-path", str(adapter_path),
+    ]
+
+    if resume_adapter_path:
+        cmd += ["--resume-adapter-file", resume_adapter_path]
+
+    cmd += [
         "--learning-rate", str(learning_rate),
         "--max-seq-length", str(max_seq_length),
     ]
@@ -137,28 +144,31 @@ async def run_training_job(
     await queue.put({"type": "info", "msg": f"📦 Model: {base_model}"})
     await queue.put({"type": "info", "msg": f"🔧 Config: iters={iters}, batch={batch_size}, lr={learning_rate}"})
     await queue.put({"type": "info", "msg": f"📂 Adapter path: {adapter_path}"})
+    if resume_adapter_path:
+        await queue.put({"type": "info", "msg": f"🔄 Resuming from: {resume_adapter_path}"})
     await queue.put({"type": "cmd", "msg": " ".join(cmd)})
 
     try:
         env = {**os.environ, "PYTHONUNBUFFERED": "1"}
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
+        # Use asyncio subprocess to avoid blocking the event loop
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
             env=env,
         )
         _job_processes[job_id] = process
 
         final_loss = None
 
-        # Read output line by line
-        for line in iter(process.stdout.readline, ""):
-            line = line.rstrip()
+        # Read output line by line (non-blocking)
+        while True:
+            raw = await process.stdout.readline()
+            if not raw:
+                break
+            line = raw.decode(errors="replace").rstrip()
             if line:
                 await queue.put({"type": "log", "msg": line})
-                # Try to extract loss
                 loss_match = re.search(r"[Ll]oss[:\s=]+([0-9.]+)", line)
                 if loss_match:
                     try:
@@ -166,7 +176,7 @@ async def run_training_job(
                     except ValueError:
                         pass
 
-        process.wait()
+        await process.wait()
         _job_processes.pop(job_id, None)
 
         if process.returncode == 0:
@@ -297,24 +307,35 @@ async def run_inference(model_path: str, prompt: str, max_tokens: int = 256) -> 
         return f"❌ Inference error: {str(e)}"
 
 
-async def run_adapter_inference(base_model: str, adapter_path: str, prompt: str, max_tokens: int = 256) -> str:
+async def run_adapter_inference(base_model: str, adapter_path: str, prompt: str, max_tokens: int = 512) -> str:
     """
     Run inference with LoRA adapter (without fusing).
+    Uses proper chat template formatting for instruction models.
     """
     python = sys.executable
+
     cmd = [
         python, "-m", "mlx_lm.generate",
         "--model", base_model,
         "--adapter-path", adapter_path,
+        "--system-prompt", "Du bist ein hilfreicher Assistent. Antworte präzise und vollständig auf Deutsch.",
         "--prompt", prompt,
         "--max-tokens", str(max_tokens),
+        "--temp", "0.7",
+        "--top-p", "0.9",
+        "--min-p", "0.05",
     ]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
         output = result.stdout + result.stderr
-        return _clean_mlx_output(output, prompt) or "⚠️ No response generated"
+        cleaned = _clean_mlx_output(output, prompt)
+        # Strip chat template artifacts from response
+        for stop in ["<|im_end|>", "<|im_start|>", "</s>"]:
+            if stop in cleaned:
+                cleaned = cleaned[:cleaned.index(stop)]
+        return cleaned.strip() or "⚠️ No response generated"
     except subprocess.TimeoutExpired:
-        return "⚠️ Inference timed out after 120s"
+        return "⚠️ Inference timed out after 180s"
     except Exception as e:
         return f"❌ Inference error: {str(e)}"

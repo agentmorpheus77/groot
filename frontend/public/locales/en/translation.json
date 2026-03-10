@@ -159,7 +159,9 @@
     "delete": {
       "title": "Delete Job",
       "confirm": "Are you sure you want to delete this training job?"
-    }
+    },
+    "resume": "Resume",
+    "resumeTitle": "Resume training from last checkpoint"
   },
   "models": {
     "title": "Model Library",

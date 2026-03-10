@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Zap, Play, Trash2, FileText, ChevronDown, ChevronUp } from "lucide-react"
+import { Zap, Play, Trash2, FileText, ChevronDown, ChevronUp, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -58,6 +58,14 @@ export default function Training() {
     return () => clearInterval(timer)
   }, [])
 
+  // Auto-open logs for any running job on page load
+  useEffect(() => {
+    if (jobs.length > 0 && logsJobId === null) {
+      const running = jobs.find(j => j.status === "running")
+      if (running) openLogs(running.id)
+    }
+  }, [jobs])
+
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [logs])
@@ -107,8 +115,26 @@ export default function Training() {
       }
     }
     es.onerror = () => {
-      setLogs(prev => [...prev, { type: "error", msg: "Connection lost" }])
       es.close()
+      // Fallback: poll logs via HTTP every 3s if SSE fails
+      const poll = async () => {
+        try {
+          const r = await fetch(`/api/jobs/${jobId}/log-snapshot`)
+          if (!r.ok) return
+          const lines: string[] = await r.json()
+          if (lines.length > 0) setLogs(lines.map(l => ({ type: "log", msg: l })))
+        } catch {}
+      }
+      poll()
+      const t = setInterval(async () => {
+        try {
+          const r2 = await fetch(`/api/jobs/${jobId}/status`)
+          if (!r2.ok) return
+          const s = await r2.json()
+          if (s.status !== "running") { clearInterval(t); load(); return }
+          poll()
+        } catch {}
+      }, 3000)
     }
   }
 
@@ -117,6 +143,15 @@ export default function Training() {
     await deleteJob(deleteTarget.id).catch(console.error)
     load()
     setDeleteTarget(null)
+  }
+
+  const resumeJob = async (jobId: number) => {
+    try {
+      await fetch(`/api/jobs/${jobId}/resume`, { method: "POST" })
+      load()
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   const statusVariant = (s: string) =>
@@ -278,7 +313,7 @@ export default function Training() {
                   </TableHeader>
                   <TableBody>
                     {jobs.map(job => (
-                      <TableRow key={job.id} className={cn(logsJobId === job.id && "bg-primary/5")}>
+                      <TableRow key={job.id} className={cn(logsJobId === job.id && "bg-primary/5", "cursor-pointer")} onClick={() => openLogs(job.id)}>
                         <TableCell>
                           <div>
                             <p className="font-medium text-sm truncate max-w-[180px]">{job.name}</p>
@@ -297,8 +332,15 @@ export default function Training() {
                               onClick={() => openLogs(job.id)} title={t("training.viewLogs")}>
                               <FileText className="w-3.5 h-3.5" />
                             </Button>
+                            {job.status === "completed" && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary"
+                                onClick={(e) => { e.stopPropagation(); resumeJob(job.id) }}
+                                title={t("training.resumeTitle")}>
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={() => setDeleteTarget(job)}>
+                              onClick={(e) => { e.stopPropagation(); setDeleteTarget(job) }}>
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>
