@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ─── DARK THEME (CDBrain) ─────────────────────────────── */
+  :root {
+    --background:         214 100% 7%;    /* #000e22 */
+    --foreground:         210 40% 98%;
+
+    --card:               218 100% 13%;   /* #001e42 */
+    --card-foreground:    210 40% 98%;
+
+    --popover:            218 100% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary:            37 100% 61%;    /* #ffaa3a */
+    --primary-foreground: 214 100% 7%;
+
+    --secondary:          218 60% 20%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted:              218 50% 15%;
+    --muted-foreground:   215 20% 65%;
+
+    --accent:             37 100% 61%;    /* #ffaa3a */
+    --accent-foreground:  214 100% 7%;
+
+    --destructive:        0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border:             218 50% 22%;
+    --input:              218 50% 18%;
+    --ring:               37 100% 61%;
+
+    --radius:             0.5rem;
+
+    /* Sidebar */
+    --sidebar-background: 218 100% 9%;
+    --sidebar-foreground: 210 40% 90%;
+    --sidebar-border:     218 50% 18%;
+    --sidebar-accent:     218 50% 16%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-primary:    37 100% 61%;
+    --sidebar-primary-foreground: 214 100% 7%;
+
+    /* Scrollbar */
+    --scrollbar-track:    hsl(218 100% 9%);
+    --scrollbar-thumb:    hsl(218 50% 22%);
+  }
+
+  /* ─── LIGHT THEME ──────────────────────────────────────── */
+  .light {
+    --background:         0 0% 98%;
+    --foreground:         222 47% 11%;
+
+    --card:               0 0% 100%;
+    --card-foreground:    222 47% 11%;
+
+    --popover:            0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary:            37 100% 50%;    /* #ffaa3a slightly deeper in light */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary:          210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted:              210 40% 96%;
+    --muted-foreground:   215 16% 47%;
+
+    --accent:             37 100% 50%;
+    --accent-foreground:  0 0% 100%;
+
+    --destructive:        0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border:             214 32% 91%;
+    --input:              214 32% 91%;
+    --ring:               37 100% 50%;
+
+    --sidebar-background: 210 40% 96%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-border:     214 32% 88%;
+    --sidebar-accent:     210 40% 92%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-primary:    37 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+
+    --scrollbar-track:    hsl(210 40% 96%);
+    --scrollbar-thumb:    hsl(214 32% 80%);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Roboto', system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  code, pre, .font-mono {
+    font-family: 'Roboto Mono', monospace;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: var(--scrollbar-track); }
+  ::-webkit-scrollbar-thumb  { background: var(--scrollbar-thumb); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.6); }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border/50;
+  }
+  .brand-glow {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.2);
+  }
+  .sidebar-item {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium
+           transition-colors cursor-pointer select-none;
+    color: hsl(var(--sidebar-foreground));
+  }
+  .sidebar-item:hover {
+    background-color: hsl(var(--sidebar-accent));
+    color: hsl(var(--sidebar-accent-foreground));
+  }
+  .sidebar-item.active {
+    background-color: hsl(var(--sidebar-accent));
+    color: hsl(var(--sidebar-primary));
+    border-left: 2px solid hsl(var(--sidebar-primary));
+  }
+}

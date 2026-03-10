@@ -1,0 +1,220 @@
+{
+  "app": {
+    "name": "Groot",
+    "tagline": "LLM Training Studio",
+    "subtitle": "Local Fine-Tuning for Apple Silicon"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "datasets": "Datasets",
+    "training": "Training",
+    "models": "Models",
+    "chat": "Chat"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System"
+  },
+  "lang": {
+    "select": "Language",
+    "de": "Deutsch",
+    "en": "English"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "actions": "Actions",
+    "name": "Name",
+    "status": "Status",
+    "created": "Created",
+    "noData": "No data available",
+    "rows": "rows",
+    "seconds": "seconds",
+    "start": "Start",
+    "preview": "Preview",
+    "upload": "Upload",
+    "test": "Test",
+    "back": "Back",
+    "refresh": "Refresh",
+    "copy": "Copy",
+    "send": "Send"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Welcome to your LLM Training Studio",
+    "stats": {
+      "datasets": "Datasets",
+      "jobs": "Training Jobs",
+      "models": "Trained Models",
+      "running": "Running Jobs"
+    },
+    "quickstart": {
+      "title": "Quick Start",
+      "step1": "1. Upload Dataset",
+      "step2": "2. Start Training Job",
+      "step3": "3. Test Model in Chat",
+      "step1Desc": "Upload your JSONL/CSV training data",
+      "step2Desc": "Choose base model & start fine-tuning",
+      "step3Desc": "Test your trained model interactively"
+    },
+    "recentJobs": "Recent Training Jobs",
+    "recentModels": "Trained Models",
+    "noJobs": "No training jobs yet",
+    "noModels": "No models trained yet"
+  },
+  "datasets": {
+    "title": "Datasets",
+    "subtitle": "Manage your training data",
+    "upload": {
+      "title": "Upload Dataset",
+      "drag": "Drag file here or click to browse",
+      "formats": "Supported formats: .jsonl, .json, .csv",
+      "hint": "Format: {\"prompt\": \"...\", \"completion\": \"...\"} or {\"question\": \"...\", \"answer\": \"...\"}",
+      "button": "Choose file",
+      "uploading": "Uploading...",
+      "success": "Dataset uploaded successfully!",
+      "error": "Upload failed"
+    },
+    "table": {
+      "name": "Name",
+      "rows": "Rows",
+      "format": "Format",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "preview": {
+      "title": "Preview",
+      "showing": "Showing first 10 entries",
+      "prompt": "Prompt",
+      "completion": "Completion",
+      "text": "Text"
+    },
+    "delete": {
+      "title": "Delete Dataset",
+      "confirm": "Are you sure you want to delete this dataset? All associated files will be removed.",
+      "success": "Dataset deleted"
+    },
+    "empty": "No datasets yet. Upload your first dataset!"
+  },
+  "training": {
+    "title": "Training",
+    "subtitle": "Fine-tune your own LLM",
+    "newJob": "New Training Job",
+    "form": {
+      "jobName": "Job Name",
+      "jobNamePlaceholder": "e.g. CDBrain-Expert-v1",
+      "dataset": "Dataset",
+      "datasetSelect": "Select dataset...",
+      "baseModel": "Base Model",
+      "modelSelect": "Select model...",
+      "epochs": "Epochs",
+      "learningRate": "Learning Rate",
+      "maxSeqLength": "Max Sequence Length",
+      "batchSize": "Batch Size",
+      "iterations": "Iterations",
+      "advanced": "Advanced Settings",
+      "startTraining": "Start Training",
+      "starting": "Starting..."
+    },
+    "models": {
+      "llama": "Llama 3.2 1B (Fast, for testing)",
+      "mistral": "Mistral 7B (Better, slower)"
+    },
+    "logs": {
+      "title": "Live Logs",
+      "waiting": "Waiting for training to start...",
+      "connecting": "Connecting...",
+      "streaming": "Training in progress...",
+      "done": "Training complete",
+      "clear": "Clear logs"
+    },
+    "table": {
+      "name": "Name",
+      "dataset": "Dataset",
+      "model": "Base Model",
+      "status": "Status",
+      "loss": "Loss",
+      "duration": "Duration",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "empty": "No training jobs yet. Start your first job!",
+    "noDatasets": "Upload a dataset first",
+    "viewLogs": "View Logs",
+    "delete": {
+      "title": "Delete Job",
+      "confirm": "Are you sure you want to delete this training job?"
+    }
+  },
+  "models": {
+    "title": "Model Library",
+    "subtitle": "All trained models & adapters",
+    "table": {
+      "name": "Name",
+      "baseModel": "Base Model",
+      "dataset": "Dataset",
+      "loss": "Loss",
+      "duration": "Training Time",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "empty": "No trained models yet. Start a training run!",
+    "chat": "Chat",
+    "delete": {
+      "title": "Delete Model",
+      "confirm": "Are you sure you want to delete this model? All adapter files will be removed."
+    },
+    "info": {
+      "title": "Model Details",
+      "adapterPath": "Adapter Path",
+      "fusedPath": "Fused Model Path",
+      "trainingTime": "Training Time"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "subtitle": "Test your trained models",
+    "selectModel": "Select Model",
+    "selectModelPlaceholder": "Choose a model...",
+    "noModel": "Please select a model first",
+    "noModels": "No trained models yet. Train one first!",
+    "input": {
+      "placeholder": "Type a message...",
+      "send": "Send"
+    },
+    "message": {
+      "you": "You",
+      "model": "Model",
+      "thinking": "Thinking...",
+      "error": "Generation error"
+    },
+    "maxTokens": "Max Tokens",
+    "clearHistory": "Clear history",
+    "compareMode": "Compare Mode",
+    "model1": "Model 1",
+    "model2": "Model 2",
+    "emptyState": "Start a conversation with your fine-tuned model!"
+  },
+  "errors": {
+    "loadFailed": "Failed to load",
+    "uploadFailed": "Upload failed",
+    "deleteFailed": "Delete failed",
+    "trainingFailed": "Training failed",
+    "chatFailed": "Chat error",
+    "networkError": "Network error. Is the backend running?"
+  }
+}

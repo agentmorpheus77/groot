@@ -1,0 +1,220 @@
+{
+  "app": {
+    "name": "Groot",
+    "tagline": "LLM Training Studio",
+    "subtitle": "Lokales Fine-Tuning für Apple Silicon"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "datasets": "Datensätze",
+    "training": "Training",
+    "models": "Modelle",
+    "chat": "Chat"
+  },
+  "theme": {
+    "toggle": "Theme wechseln",
+    "dark": "Dunkel",
+    "light": "Hell",
+    "system": "System"
+  },
+  "lang": {
+    "select": "Sprache",
+    "de": "Deutsch",
+    "en": "English"
+  },
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "actions": "Aktionen",
+    "name": "Name",
+    "status": "Status",
+    "created": "Erstellt",
+    "noData": "Keine Daten vorhanden",
+    "rows": "Einträge",
+    "seconds": "Sekunden",
+    "start": "Starten",
+    "preview": "Vorschau",
+    "upload": "Hochladen",
+    "test": "Testen",
+    "back": "Zurück",
+    "refresh": "Aktualisieren",
+    "copy": "Kopieren",
+    "send": "Senden"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Willkommen in deinem LLM Training Studio",
+    "stats": {
+      "datasets": "Datensätze",
+      "jobs": "Training-Jobs",
+      "models": "Trainierte Modelle",
+      "running": "Laufende Jobs"
+    },
+    "quickstart": {
+      "title": "Schnellstart",
+      "step1": "1. Datensatz hochladen",
+      "step2": "2. Training-Job starten",
+      "step3": "3. Modell im Chat testen",
+      "step1Desc": "Lade deine JSONL/CSV Trainingsdaten hoch",
+      "step2Desc": "Wähle Basis-Modell & starte Fine-Tuning",
+      "step3Desc": "Teste dein trainiertes Modell interaktiv"
+    },
+    "recentJobs": "Letzte Training-Jobs",
+    "recentModels": "Trainierte Modelle",
+    "noJobs": "Noch keine Training-Jobs",
+    "noModels": "Noch keine Modelle trainiert"
+  },
+  "datasets": {
+    "title": "Datensätze",
+    "subtitle": "Verwalte deine Trainingsdaten",
+    "upload": {
+      "title": "Datensatz hochladen",
+      "drag": "Datei hierher ziehen oder klicken",
+      "formats": "Unterstützte Formate: .jsonl, .json, .csv",
+      "hint": "Format: {\"prompt\": \"...\", \"completion\": \"...\"} oder {\"question\": \"...\", \"answer\": \"...\"}",
+      "button": "Datei auswählen",
+      "uploading": "Wird hochgeladen...",
+      "success": "Datensatz erfolgreich hochgeladen!",
+      "error": "Fehler beim Hochladen"
+    },
+    "table": {
+      "name": "Name",
+      "rows": "Einträge",
+      "format": "Format",
+      "created": "Erstellt",
+      "actions": "Aktionen"
+    },
+    "preview": {
+      "title": "Vorschau",
+      "showing": "Zeige erste 10 Einträge",
+      "prompt": "Prompt",
+      "completion": "Completion",
+      "text": "Text"
+    },
+    "delete": {
+      "title": "Datensatz löschen",
+      "confirm": "Möchtest du diesen Datensatz wirklich löschen? Alle zugehörigen Dateien werden entfernt.",
+      "success": "Datensatz gelöscht"
+    },
+    "empty": "Noch keine Datensätze. Lade deinen ersten Datensatz hoch!"
+  },
+  "training": {
+    "title": "Training",
+    "subtitle": "Fine-Tune dein eigenes LLM",
+    "newJob": "Neuer Training-Job",
+    "form": {
+      "jobName": "Job-Name",
+      "jobNamePlaceholder": "z.B. CDBrain-Expert-v1",
+      "dataset": "Datensatz",
+      "datasetSelect": "Datensatz auswählen...",
+      "baseModel": "Basis-Modell",
+      "modelSelect": "Modell auswählen...",
+      "epochs": "Epochen",
+      "learningRate": "Lernrate",
+      "maxSeqLength": "Max. Sequenzlänge",
+      "batchSize": "Batch-Größe",
+      "iterations": "Iterationen",
+      "advanced": "Erweiterte Einstellungen",
+      "startTraining": "Training starten",
+      "starting": "Wird gestartet..."
+    },
+    "models": {
+      "llama": "Llama 3.2 1B (Schnell, für Tests)",
+      "mistral": "Mistral 7B (Besser, langsamer)"
+    },
+    "logs": {
+      "title": "Live-Logs",
+      "waiting": "Warte auf Training-Start...",
+      "connecting": "Verbinde...",
+      "streaming": "Training läuft...",
+      "done": "Training abgeschlossen",
+      "clear": "Logs leeren"
+    },
+    "table": {
+      "name": "Name",
+      "dataset": "Datensatz",
+      "model": "Basis-Modell",
+      "status": "Status",
+      "loss": "Loss",
+      "duration": "Dauer",
+      "created": "Erstellt",
+      "actions": "Aktionen"
+    },
+    "status": {
+      "queued": "Warteschlange",
+      "running": "Läuft",
+      "completed": "Abgeschlossen",
+      "failed": "Fehlgeschlagen"
+    },
+    "empty": "Noch keine Training-Jobs. Starte deinen ersten Job!",
+    "noDatasets": "Zuerst einen Datensatz hochladen",
+    "viewLogs": "Logs anzeigen",
+    "delete": {
+      "title": "Job löschen",
+      "confirm": "Möchtest du diesen Training-Job wirklich löschen?"
+    }
+  },
+  "models": {
+    "title": "Modell-Bibliothek",
+    "subtitle": "Alle trainierten Modelle & Adapter",
+    "table": {
+      "name": "Name",
+      "baseModel": "Basis-Modell",
+      "dataset": "Datensatz",
+      "loss": "Loss",
+      "duration": "Trainingszeit",
+      "created": "Erstellt",
+      "actions": "Aktionen"
+    },
+    "empty": "Noch keine trainierten Modelle. Starte ein Training!",
+    "chat": "Chatten",
+    "delete": {
+      "title": "Modell löschen",
+      "confirm": "Möchtest du dieses Modell wirklich löschen? Alle Adapter-Dateien werden entfernt."
+    },
+    "info": {
+      "title": "Modell-Details",
+      "adapterPath": "Adapter-Pfad",
+      "fusedPath": "Fused-Modell-Pfad",
+      "trainingTime": "Trainingszeit"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "subtitle": "Teste deine trainierten Modelle",
+    "selectModel": "Modell auswählen",
+    "selectModelPlaceholder": "Modell auswählen...",
+    "noModel": "Bitte zuerst ein Modell auswählen",
+    "noModels": "Noch keine trainierten Modelle. Erst trainieren!",
+    "input": {
+      "placeholder": "Nachricht eingeben...",
+      "send": "Senden"
+    },
+    "message": {
+      "you": "Du",
+      "model": "Modell",
+      "thinking": "Denkt nach...",
+      "error": "Fehler beim Generieren"
+    },
+    "maxTokens": "Max. Tokens",
+    "clearHistory": "Verlauf leeren",
+    "compareMode": "Vergleichsmodus",
+    "model1": "Modell 1",
+    "model2": "Modell 2",
+    "emptyState": "Starte eine Unterhaltung mit deinem Fine-Tune Modell!"
+  },
+  "errors": {
+    "loadFailed": "Fehler beim Laden",
+    "uploadFailed": "Fehler beim Hochladen",
+    "deleteFailed": "Fehler beim Löschen",
+    "trainingFailed": "Training fehlgeschlagen",
+    "chatFailed": "Fehler beim Chat",
+    "networkError": "Netzwerkfehler. Backend erreichbar?"
+  }
+}
