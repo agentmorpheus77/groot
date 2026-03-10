@@ -219,6 +219,7 @@
     "statsSize": "used",
     "cached": "Cached",
     "cachedReady": "Ready for training",
+    "localOnly": "Local only",
     "download": "Download",
     "downloading": "Downloading...",
     "downloaded": "downloaded",

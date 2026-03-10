@@ -219,6 +219,7 @@
     "statsSize": "belegt",
     "cached": "Gecacht",
     "cachedReady": "Bereit für Training",
+    "localOnly": "Lokal",
     "download": "Herunterladen",
     "downloading": "Wird heruntergeladen...",
     "downloaded": "heruntergeladen",

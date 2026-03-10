@@ -183,6 +183,7 @@ export default function ModelHub() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [family, setFamily] = useState("All")
+  const [localOnly, setLocalOnly] = useState(false)
   const [cachedCount, setCachedCount] = useState(0)
   const [cachedSize, setCachedSize] = useState("0 GB")
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({})
@@ -267,9 +268,10 @@ export default function ModelHub() {
         m.id.toLowerCase().includes(search.toLowerCase()) ||
         m.family.toLowerCase().includes(search.toLowerCase())
       const matchFamily = family === "All" || m.family.toLowerCase().startsWith(family.toLowerCase())
-      return matchSearch && matchFamily
+      const matchLocal = !localOnly || m.is_cached || downloads[m.id]?.status === "done"
+      return matchSearch && matchFamily && matchLocal
     })
-  }, [models, search, family])
+  }, [models, search, family, localOnly, downloads])
 
   const cachedModels = useMemo(() => models.filter((m) => m.is_cached || downloads[m.id]?.status === "done"), [models, downloads])
 
@@ -317,15 +319,29 @@ export default function ModelHub() {
             className="pl-9"
           />
         </div>
-        <Tabs value={family} onValueChange={setFamily}>
-          <TabsList className="h-9 flex-wrap">
-            {FAMILIES.map((f) => (
-              <TabsTrigger key={f} value={f} className="text-xs px-2.5">
-                {f}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={localOnly ? "default" : "outline"}
+            size="sm"
+            onClick={() => setLocalOnly(!localOnly)}
+            className={localOnly ? "bg-[#ffaa3a] text-black hover:bg-[#ffbc5e]" : ""}
+          >
+            <HardDrive className="w-4 h-4 mr-2" />
+            {t("hub.localOnly")}
+            {localOnly && cachedCount > 0 && (
+              <span className="ml-1.5 bg-black/20 rounded-full px-1.5 py-0.5 text-xs">{cachedCount}</span>
+            )}
+          </Button>
+          <Tabs value={family} onValueChange={setFamily}>
+            <TabsList className="h-9 flex-wrap">
+              {FAMILIES.map((f) => (
+                <TabsTrigger key={f} value={f} className="text-xs px-2.5">
+                  {f}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {/* Error state */}
