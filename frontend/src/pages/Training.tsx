@@ -35,11 +35,11 @@ export default function Training() {
     name: "",
     dataset_id: "",
     base_model: "",
-    epochs: 3,
-    learning_rate: 0.0001,
-    max_seq_length: 512,
+    epochs: 5,
+    learning_rate: 0.00005,
+    max_seq_length: 1024,
     batch_size: 4,
-    iters: 100,
+    iters: 20000,
   })
 
   const load = () => {
@@ -114,28 +114,46 @@ export default function Training() {
         load()
       }
     }
-    es.onerror = () => {
-      es.close()
-      // Fallback: poll logs via HTTP every 3s if SSE fails
-      const poll = async () => {
-        try {
-          const r = await fetch(`/api/jobs/${jobId}/log-snapshot`)
-          if (!r.ok) return
-          const lines: string[] = await r.json()
-          if (lines.length > 0) setLogs(lines.map(l => ({ type: "log", msg: l })))
-        } catch {}
-      }
-      poll()
-      const t = setInterval(async () => {
+    // Polling fallback (works via Cloudflare tunnel where SSE may break)
+    let pollInterval: ReturnType<typeof setInterval> | null = null
+
+    const poll = async () => {
+      try {
+        const r = await fetch(`/api/jobs/${jobId}/log-snapshot`)
+        if (!r.ok) return
+        const lines: string[] = await r.json()
+        if (lines.length > 0) setLogs(lines.map(l => ({ type: "log", msg: l })))
+      } catch {}
+    }
+
+    const startPolling = () => {
+      if (pollInterval) return
+      poll() // sofort beim Start
+      pollInterval = setInterval(async () => {
         try {
           const r2 = await fetch(`/api/jobs/${jobId}/status`)
           if (!r2.ok) return
           const s = await r2.json()
-          if (s.status !== "running") { clearInterval(t); load(); return }
+          if (s.status !== "running") {
+            clearInterval(pollInterval!)
+            pollInterval = null
+            load()
+            return
+          }
           poll()
         } catch {}
-      }, 3000)
+      }, 2000) // alle 2 Sekunden
     }
+
+    es.onerror = () => {
+      es.close()
+      startPolling()
+    }
+
+    // SSE Timeout-Schutz: wenn nach 10s keine Nachricht → Polling starten
+    const sseTimeout = setTimeout(() => {
+      if (pollInterval === null) startPolling()
+    }, 10000)
   }
 
   const handleDelete = async () => {
@@ -245,14 +263,32 @@ export default function Training() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>{t("training.form.iterations")}</Label>
-                <Input type="number" min={10} max={5000} value={form.iters}
+                <div className="flex items-center gap-1.5">
+                  <Label>{t("training.form.iterations")}</Label>
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded cursor-help"
+                    title="Wie oft das Modell trainiert wird. Faustregel: (Anzahl Trainingspaare × Epochen) / Batch Size. Für Fakten-Training: mind. 3 Epochen. Beispiel: 15.000 Paare × 5 / 4 = ~19.000 Iterationen.">
+                    ?
+                  </span>
+                </div>
+                <Input type="number" min={10} max={50000} value={form.iters}
                   onChange={e => setForm(p => ({ ...p, iters: parseInt(e.target.value) || 100 }))} />
+                <p className="text-[10px] text-muted-foreground">
+                  Style: 500–2.000 · Fakten: 10.000–20.000
+                </p>
               </div>
               <div className="space-y-1.5">
-                <Label>{t("training.form.batchSize")}</Label>
+                <div className="flex items-center gap-1.5">
+                  <Label>{t("training.form.batchSize")}</Label>
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded cursor-help"
+                    title="Anzahl Beispiele pro Trainingsschritt. Größerer Batch = schneller aber mehr RAM. Empfehlung: 4 (sicher) oder 8 (bei 32GB+ RAM).">
+                    ?
+                  </span>
+                </div>
                 <Input type="number" min={1} max={16} value={form.batch_size}
                   onChange={e => setForm(p => ({ ...p, batch_size: parseInt(e.target.value) || 4 }))} />
+                <p className="text-[10px] text-muted-foreground">
+                  4 = Standard · 8 = schneller (32GB+)
+                </p>
               </div>
             </div>
 
@@ -268,14 +304,32 @@ export default function Training() {
             {showAdvanced && (
               <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border">
                 <div className="space-y-1.5">
-                  <Label>{t("training.form.learningRate")}</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label>{t("training.form.learningRate")}</Label>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded cursor-help"
+                      title="Wie schnell das Modell lernt. Zu hoch = instabiles Training. Zu niedrig = langsames Lernen. Empfehlung: 0.0001 für kurze Jobs, 0.00005 für lange Overnight-Jobs.">
+                      ?
+                    </span>
+                  </div>
                   <Input type="number" step="0.00001" value={form.learning_rate}
                     onChange={e => setForm(p => ({ ...p, learning_rate: parseFloat(e.target.value) || 0.0001 }))} />
+                  <p className="text-[10px] text-muted-foreground">
+                    Kurz: 0.0001 · Overnight: 0.00005
+                  </p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{t("training.form.maxSeqLength")}</Label>
-                  <Input type="number" min={64} max={2048} step={64} value={form.max_seq_length}
-                    onChange={e => setForm(p => ({ ...p, max_seq_length: parseInt(e.target.value) || 512 }))} />
+                  <div className="flex items-center gap-1.5">
+                    <Label>{t("training.form.maxSeqLength")}</Label>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded cursor-help"
+                      title="Maximale Tokenlänge pro Trainingseintrag. Längere Einträge werden abgeschnitten (Warnung im Log). LUTZ-Daten haben bis zu 1004 Tokens → mindestens 1024 setzen!">
+                      ?
+                    </span>
+                  </div>
+                  <Input type="number" min={64} max={4096} step={64} value={form.max_seq_length}
+                    onChange={e => setForm(p => ({ ...p, max_seq_length: parseInt(e.target.value) || 1024 }))} />
+                  <p className="text-[10px] text-muted-foreground">
+                    Min. so groß wie längster Dateneintrag
+                  </p>
                 </div>
               </div>
             )}
@@ -308,6 +362,8 @@ export default function Training() {
                       <TableHead>{t("training.table.name")}</TableHead>
                       <TableHead>{t("training.table.status")}</TableHead>
                       <TableHead>{t("training.table.loss")}</TableHead>
+                      <TableHead className="hidden md:table-cell text-muted-foreground text-xs">Gestartet</TableHead>
+                      <TableHead className="hidden md:table-cell text-muted-foreground text-xs">Dauer</TableHead>
                       <TableHead className="text-right">{t("training.table.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -326,6 +382,14 @@ export default function Training() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm">{formatLoss(job.final_loss ?? null)}</TableCell>
+                        <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                          {job.created_at ? new Date(job.created_at + 'Z').toLocaleString('de-DE', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                          {job.started_at && job.finished_at
+                            ? (() => { const s=Math.round((new Date(job.finished_at+'Z').getTime()-new Date(job.started_at+'Z').getTime())/60000); return s>60?`${Math.floor(s/60)}h ${s%60}m`:`${s}m` })()
+                            : job.status === 'running' ? '⏳ läuft…' : '—'}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="icon" className="h-7 w-7"

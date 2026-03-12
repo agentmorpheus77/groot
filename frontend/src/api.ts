@@ -85,10 +85,10 @@ export const getBaseModels = () => api.get<{ models: string[] }>("/jobs/models")
 // Models
 export const listModels = () => api.get<Model[]>("/models")
 export const deleteModel = (id: number) => api.delete(`/models/${id}`)
-export const chatWithModel = (id: number, prompt: string, max_tokens = 256) =>
+export const chatWithModel = (id: number, prompt: string, max_tokens = 256, system_prompt?: string) =>
   api.post<{ model_id: number; model_name: string; prompt: string; response: string }>(
     `/models/${id}/chat`,
-    { prompt, max_tokens }
+    { prompt, max_tokens, ...(system_prompt ? { system_prompt } : {}) }
   )
 export const getStats = () => api.get<Stats>("/models/stats/summary")
 

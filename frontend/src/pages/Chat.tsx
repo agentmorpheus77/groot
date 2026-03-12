@@ -26,6 +26,8 @@ export default function Chat() {
   const { modelId } = useParams()
   const navigate = useNavigate()
 
+  const LUTZ_DEFAULT_PROMPT = "Du bist ein freundlicher, kompetenter Assistent für LUTZ-JESCO GmbH. Du hilfst Mitarbeitern und Kunden bei Fragen rund um Produkte, Prozesse und das Unternehmen. Antworte immer auf Deutsch, klar und verständlich. Halte deine Antworten kurz und direkt. Wenn du etwas nicht weißt, sage es ehrlich. Antworte NIEMALS im Format eines Wissensgraphen oder mit technischen Metadaten."
+
   const [models, setModels] = useState<Model[]>([])
   const [selectedModelId, setSelectedModelId] = useState<string>(modelId || "")
   const [messages, setMessages] = useState<Message[]>([])
@@ -33,6 +35,8 @@ export default function Chat() {
   const [loading, setLoading] = useState(false)
   const [maxTokens, setMaxTokens] = useState(256)
   const [showSettings, setShowSettings] = useState(false)
+  const [systemPrompt, setSystemPrompt] = useState(LUTZ_DEFAULT_PROMPT)
+  const [showSystemPrompt, setShowSystemPrompt] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -59,7 +63,7 @@ export default function Chat() {
     setLoading(true)
 
     try {
-      const r = await chatWithModel(parseInt(selectedModelId), userMsg.content, maxTokens)
+      const r = await chatWithModel(parseInt(selectedModelId), userMsg.content, maxTokens, systemPrompt)
       setMessages(prev => [...prev, {
         role: "assistant",
         content: r.data.response,
@@ -119,6 +123,11 @@ export default function Chat() {
             </SelectContent>
           </Select>
 
+          <Button variant="ghost" size="icon" className="h-9 w-9" title="System Prompt"
+            onClick={() => setShowSystemPrompt(!showSystemPrompt)}>
+            <Bot className="w-4 h-4" />
+          </Button>
+
           <Button variant="ghost" size="icon" className="h-9 w-9"
             onClick={() => setShowSettings(!showSettings)}>
             <Settings className="w-4 h-4" />
@@ -132,6 +141,29 @@ export default function Chat() {
           )}
         </div>
       </div>
+
+      {/* System Prompt panel */}
+      {showSystemPrompt && (
+        <Card className="glass-card mb-4 shrink-0">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">System Prompt</Label>
+                <Button variant="ghost" size="sm" className="h-6 text-xs px-2"
+                  onClick={() => setSystemPrompt(LUTZ_DEFAULT_PROMPT)}>
+                  Reset
+                </Button>
+              </div>
+              <Textarea
+                value={systemPrompt}
+                onChange={e => setSystemPrompt(e.target.value)}
+                className="text-xs min-h-[80px] font-mono"
+                rows={4}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Settings panel */}
       {showSettings && (

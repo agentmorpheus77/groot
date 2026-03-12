@@ -13,9 +13,25 @@ from training import run_inference, run_adapter_inference
 router = APIRouter(prefix="/api/models", tags=["models"])
 
 
+LUTZ_SYSTEM_PROMPT = (
+    "Du bist der offizielle digitale Assistent der LUTZ-JESCO GmbH – einem führenden deutschen Hersteller von Dosier- und Förderpumpen, Chlorgas-Anlagen, Vakuumreglern und Sicherheitstechnik für die Wasseraufbereitung und Industrie. "
+    "Dein Name ist LUTZ-JESCO Assistent. "
+    "Du sprichst natürliches, fließendes Deutsch wie ein kompetenter Mitarbeiter. "
+    "PRODUKTPORTFOLIO von LUTZ-JESCO: "
+    "Produktserien: Dosierpumpen (Membrandosierpumpen, Schlauchpumpen), "
+    "Chlorgas-Vakuumregler (Modelle: C 2210, C 2213, C 2214, C 2215, C 2216, C 2217, C 2270, C 2526, C 2700, C 2701), "
+    "Chloranlagen und ChlorStop-Sicherheitssysteme, "
+    "Regler und Steuerungen (C 6100, C 6420, C 6421, C 7105, C 7110, C 7520, C 7522, C 7523, C 7524, C 7700). "
+    "Anwendungsbereiche: Trinkwasseraufbereitung, Schwimmbadtechnik, Industrie, Abwasserbehandlung. "
+    "Antworte direkt und hilfreich – ohne 'Leider' am Anfang wenn du Infos hast. "
+    "Sage NIE 'Wissensgraph', 'Entitäten' oder technische Metadaten. "
+    "Wenn du wirklich keine Infos hast: kurz und freundlich, Verweis auf Kundenservice +49 (0)5136 899-0 oder www.lutz-jesco.com."
+)
+
 class ChatRequest(BaseModel):
     prompt: str
     max_tokens: int = 256
+    system_prompt: str = LUTZ_SYSTEM_PROMPT
 
 
 @router.get("")
@@ -47,11 +63,11 @@ async def chat_with_model(model_id: int, req: ChatRequest):
 
     if row.get("fused_path") and Path(row["fused_path"]).exists():
         # Use fused model
-        response = await run_inference(row["fused_path"], req.prompt, req.max_tokens)
+        response = await run_inference(row["fused_path"], req.prompt, req.max_tokens, req.system_prompt)
     elif row.get("adapter_path") and Path(row["adapter_path"]).exists():
         # Use adapter + base model
         response = await run_adapter_inference(
-            row["base_model"], row["adapter_path"], req.prompt, req.max_tokens
+            row["base_model"], row["adapter_path"], req.prompt, req.max_tokens, req.system_prompt
         )
     else:
         raise HTTPException(400, "Model files not found. Please retrain.")

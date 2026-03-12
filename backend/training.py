@@ -82,15 +82,87 @@ async def convert_dataset_to_mlx(file_path: Path, out_dir: Path) -> int:
     train_rows = rows[:split]
     valid_rows = rows[split:] or rows[:1]  # at least 1 valid row
 
+    SYSTEM_PROMPT = "Du bist ein Wissensdatenbank-Assistent. Gib alle relevanten Fakten zu der Frage aus."
+    CHARS_PER_TOKEN = 3.5
+    # Reserve tokens for: system prompt + user prompt + all template tokens (~60 overhead)
+    TEMPLATE_OVERHEAD_CHARS = int(60 * CHARS_PER_TOKEN)
+
+    def build_text(prompt: str, completion: str) -> str:
+        """Qwen3/DeepSeek chat template — MUST match mlx_lm.generate inference format."""
+        return (
+            f"<|im_start|>system\n{SYSTEM_PROMPT}\n<|im_end|>\n"
+            f"<|im_start|>user\n{prompt}\n<|im_end|>\n"
+            f"<|im_start|>assistant\n{completion}<|im_end|>"
+        )
+
+    def split_completion(prompt: str, completion: str, max_tokens: int = 480) -> list[str]:
+        """
+        Split long completions into chunks that fit within max_tokens.
+        Splits at paragraph → sentence → hard character boundary.
+        Returns list of completion chunks, each paired with the original prompt.
+        """
+        prompt_tokens = (len(prompt) + TEMPLATE_OVERHEAD_CHARS) / CHARS_PER_TOKEN
+        budget_chars = int((max_tokens - prompt_tokens) * CHARS_PER_TOKEN)
+
+        if len(completion) <= budget_chars:
+            return [completion]
+
+        chunks = []
+        remaining = completion
+
+        while remaining:
+            if len(remaining) <= budget_chars:
+                chunks.append(remaining.strip())
+                break
+
+            # Try to split at paragraph boundary
+            split_at = remaining[:budget_chars].rfind("\n\n")
+            if split_at < budget_chars * 0.5:
+                # Try newline
+                split_at = remaining[:budget_chars].rfind("\n")
+            if split_at < budget_chars * 0.5:
+                # Try sentence boundary
+                for sep in [". ", "! ", "? ", "; "]:
+                    pos = remaining[:budget_chars].rfind(sep)
+                    if pos > budget_chars * 0.5:
+                        split_at = pos + len(sep) - 1
+                        break
+            if split_at < budget_chars * 0.3:
+                # Hard split
+                split_at = budget_chars
+
+            chunk = remaining[:split_at].strip()
+            if chunk:
+                chunks.append(chunk)
+            remaining = remaining[split_at:].strip()
+
+        return chunks if chunks else [completion[:budget_chars]]
+
     def write_jsonl(path: Path, data: list):
         with open(path, "w", encoding="utf-8") as f:
+            written = 0
+            split_count = 0
             for row in data:
-                # MLX-LM expects {"text": "..."} with prompt+completion as single text
-                text = f"<s>[INST] {row['prompt']} [/INST] {row['completion']} </s>"
-                f.write(json.dumps({"text": text}) + "\n")
+                chunks = split_completion(row["prompt"], row["completion"])
+                for i, chunk in enumerate(chunks):
+                    text = build_text(row["prompt"], chunk)
+                    f.write(json.dumps({"text": text}) + "\n")
+                    written += 1
+                if len(chunks) > 1:
+                    split_count += 1
+            return written, split_count
 
-    write_jsonl(out_dir / "train.jsonl", train_rows)
-    write_jsonl(out_dir / "valid.jsonl", valid_rows)
+    train_written, train_splits = write_jsonl(out_dir / "train.jsonl", train_rows)
+    valid_written, valid_splits = write_jsonl(out_dir / "valid.jsonl", valid_rows)
+    # Log split stats to a metadata file
+    with open(out_dir / "split_stats.json", "w") as f:
+        json.dump({
+            "original_rows": len(rows),
+            "train_written": train_written,
+            "train_splits": train_splits,
+            "valid_written": valid_written,
+            "valid_splits": valid_splits,
+        }, f, indent=2)
 
     return len(rows)
 
@@ -127,7 +199,8 @@ async def run_training_job(
         "--data", str(dataset_dir),
         "--iters", str(iters),
         "--batch-size", str(batch_size),
-        "--num-layers", "16",
+        "--num-layers", "8",           # Weniger LoRA-Layers → weniger RAM
+        "--val-batches", "25",         # Max 25 Validation-Batches → kein Metal OOM
         "--save-every", str(max(10, iters // 10)),
         "--adapter-path", str(adapter_path),
     ]
@@ -138,6 +211,8 @@ async def run_training_job(
     cmd += [
         "--learning-rate", str(learning_rate),
         "--max-seq-length", str(max_seq_length),
+        "--grad-checkpoint",           # 30-40% weniger Peak-RAM
+        "--grad-accumulation-steps", "2",  # Effektiver Batch = batch_size × 2
     ]
 
     await queue.put({"type": "info", "msg": f"🌱 Groot: Starting training job #{job_id}"})
@@ -161,20 +236,27 @@ async def run_training_job(
 
         final_loss = None
 
+        # Also write to log file for SSE fallback (Cloudflare tunnel polling)
+        log_file_path = Path(f"/tmp/groot-training-{job_id}.log")
+        log_file_path.parent.mkdir(parents=True, exist_ok=True)
+
         # Read output line by line (non-blocking)
-        while True:
-            raw = await process.stdout.readline()
-            if not raw:
-                break
-            line = raw.decode(errors="replace").rstrip()
-            if line:
-                await queue.put({"type": "log", "msg": line})
-                loss_match = re.search(r"[Ll]oss[:\s=]+([0-9.]+)", line)
-                if loss_match:
-                    try:
-                        final_loss = float(loss_match.group(1))
-                    except ValueError:
-                        pass
+        with open(log_file_path, "w") as log_file:
+            while True:
+                raw = await process.stdout.readline()
+                if not raw:
+                    break
+                line = raw.decode(errors="replace").rstrip()
+                if line:
+                    await queue.put({"type": "log", "msg": line})
+                    log_file.write(line + "\n")
+                    log_file.flush()  # Sofort schreiben damit Polling es lesen kann
+                    loss_match = re.search(r"[Ll]oss[:\s=]+([0-9.]+)", line)
+                    if loss_match:
+                        try:
+                            final_loss = float(loss_match.group(1))
+                        except ValueError:
+                            pass
 
         await process.wait()
         _job_processes.pop(job_id, None)
@@ -271,6 +353,12 @@ def _clean_mlx_output(raw: str, prompt: str) -> str:
         "it/s]",
         "0%|",
         "100%|",
+        "Unrecognized keys in",
+        "rope_parameters",
+        "rope_type",
+        "attn_factor",
+        "UserWarning",
+        "warnings.warn",
     ]
     for line in lines:
         if any(p in line for p in skip_patterns):
@@ -282,10 +370,17 @@ def _clean_mlx_output(raw: str, prompt: str) -> str:
         result = result.replace(prompt, "").strip()
     # Remove EOS tokens
     result = result.replace("</s>", "").replace("<s>", "").strip()
-    return result
+    # Strip Qwen3 thinking blocks <think>...</think> (auch ungeschlossen)
+    import re
+    result = re.sub(r"<think>.*?</think>", "", result, flags=re.DOTALL)
+    result = re.sub(r"<think>.*", "", result, flags=re.DOTALL)  # ungeschlossen
+    # Strip remaining chat template tokens
+    for token in ["<|im_end|>", "<|im_start|>", "<|endoftext|>"]:
+        result = result.replace(token, "")
+    return result.strip()
 
 
-async def run_inference(model_path: str, prompt: str, max_tokens: int = 256) -> str:
+async def run_inference(model_path: str, prompt: str, max_tokens: int = 256, system_prompt: str = "Du bist ein hilfreicher Assistent. Antworte präzise und vollständig auf Deutsch.") -> str:
     """
     Run inference against a fused model using mlx_lm.generate.
     """
@@ -293,8 +388,11 @@ async def run_inference(model_path: str, prompt: str, max_tokens: int = 256) -> 
     cmd = [
         python, "-m", "mlx_lm.generate",
         "--model", model_path,
+        "--system-prompt", system_prompt,
         "--prompt", prompt,
         "--max-tokens", str(max_tokens),
+        "--temp", "0.7",
+        "--top-p", "0.9",
     ]
 
     try:
@@ -307,35 +405,114 @@ async def run_inference(model_path: str, prompt: str, max_tokens: int = 256) -> 
         return f"❌ Inference error: {str(e)}"
 
 
-async def run_adapter_inference(base_model: str, adapter_path: str, prompt: str, max_tokens: int = 512) -> str:
+async def run_adapter_inference(base_model: str, adapter_path: str, prompt: str, max_tokens: int = 512, system_prompt: str = "Du bist ein hilfreicher Assistent. Antworte präzise und vollständig auf Deutsch.") -> str:
     """
-    Run inference with LoRA adapter (without fusing).
-    Uses proper chat template formatting for instruction models.
+    2-Schritt Pipeline:
+    1. Adapter holt Wissen (KG-Format, DeepSeek R1 mit <think>)
+    2. Qwen3-1.7B reformuliert sauber auf Deutsch (schnell, kein Reasoning)
+    Für einfache Grüße/Smalltalk: direkt Qwen3-1.7B ohne Adapter (schneller).
     """
+    import re
     python = sys.executable
 
-    cmd = [
+    # ── Shortcut: Einfache Grüße ohne KG-Abfrage ──────────────────────────
+    greetings = ["hallo", "hi", "hey", "guten tag", "guten morgen", "guten abend", "servus", "moin"]
+    if prompt.strip().lower().rstrip("!?.") in greetings:
+        cmd_greeting = [
+            python, "-m", "mlx_lm.generate",
+            "--model", "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+            "--system-prompt", system_prompt,
+            "--prompt", prompt,
+            "--max-tokens", "80",
+            "--temp", "0.8",
+        ]
+        try:
+            r = subprocess.run(cmd_greeting, capture_output=True, text=True, timeout=30)
+            cleaned = _clean_mlx_output(r.stdout + r.stderr, prompt)
+            cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
+            cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
+            for stop in ["<|im_end|>", "<|im_start|>", "</s>", "<|endoftext|>"]:
+                if stop in cleaned:
+                    cleaned = cleaned[:cleaned.index(stop)]
+            cleaned = cleaned.lstrip("! ").strip()
+            return cleaned or "Hallo! Willkommen bei LUTZ-JESCO. Wie kann ich Ihnen helfen?"
+        except Exception:
+            return "Hallo! Willkommen bei LUTZ-JESCO. Wie kann ich Ihnen helfen?"
+
+    # ── Schritt 1: Wissen mit Adapter abrufen ──────────────────────────────
+    cmd_knowledge = [
         python, "-m", "mlx_lm.generate",
         "--model", base_model,
         "--adapter-path", adapter_path,
-        "--system-prompt", "Du bist ein hilfreicher Assistent. Antworte präzise und vollständig auf Deutsch.",
+        "--system-prompt", "Du bist ein Wissensdatenbank-Assistent. Gib alle relevanten Fakten zu der Frage aus.",
         "--prompt", prompt,
         "--max-tokens", str(max_tokens),
-        "--temp", "0.7",
-        "--top-p", "0.9",
-        "--min-p", "0.05",
+        "--temp", "0.1",
     ]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
-        output = result.stdout + result.stderr
-        cleaned = _clean_mlx_output(output, prompt)
-        # Strip chat template artifacts from response
-        for stop in ["<|im_end|>", "<|im_start|>", "</s>"]:
+        result1 = subprocess.run(cmd_knowledge, capture_output=True, text=True, timeout=180)
+        raw = result1.stdout + result1.stderr
+        # Clean mlx noise
+        raw_knowledge = _clean_mlx_output(raw, prompt)
+        # Strip thinking blocks
+        raw_knowledge = re.sub(r"<think>.*?</think>", "", raw_knowledge, flags=re.DOTALL)
+        raw_knowledge = re.sub(r"<think>.*", "", raw_knowledge, flags=re.DOTALL)
+        for stop in ["<|im_end|>", "<|im_start|>", "</s>", "<|endoftext|>"]:
+            if stop in raw_knowledge:
+                raw_knowledge = raw_knowledge[:raw_knowledge.index(stop)]
+        raw_knowledge = raw_knowledge.strip()
+        if not raw_knowledge:
+            raw_knowledge = "Keine spezifischen Informationen in der Wissensdatenbank gefunden."
+    except subprocess.TimeoutExpired:
+        raw_knowledge = "Wissensbankabfrage hat zu lange gedauert."
+    except Exception as e:
+        raw_knowledge = f"Fehler bei Wissensbankabfrage: {str(e)}"
+
+    # ── Schritt 2: Qwen3-4B reformuliert (schnell, kein <think>) ────────
+    # Gate: nur ablehnen wenn explizit "keine Informationen" ODER leer/sehr kurz
+    # NICHT schon bei "keine" irgendwo im Text ablehnen (kommt in echten Antworten vor!)
+    no_knowledge_phrases = [
+        "keine spezifischen informationen",
+        "keine informationen",
+        "wissensbankabfrage hat zu lange",
+        "fehler bei wissensbankabfrage",
+        "no response generated",
+    ]
+    has_knowledge = (
+        bool(raw_knowledge) and
+        len(raw_knowledge) > 30 and
+        not any(phrase in raw_knowledge.lower() for phrase in no_knowledge_phrases)
+    )
+
+    reformat_prompt = (
+        f"Nutzerfrage: {prompt}\n\n"
+        f"{'INTERNE PRODUKTDATEN (NUR DIESE VERWENDEN):' if has_knowledge else 'STATUS: Keine spezifischen Produktdaten verfügbar.'}\n"
+        f"{raw_knowledge if has_knowledge else ''}\n\n"
+        f"{'Schreibe eine klare, direkte Antwort auf Deutsch NUR basierend auf den obigen Produktdaten. Füge KEIN eigenes Wissen oder Vermutungen hinzu. Wenn die Daten unvollständig sind, sage genau das.' if has_knowledge else 'Teile dem Nutzer freundlich mit, dass du zu diesem Thema keine spezifischen LUTZ-JESCO Daten hast, und empfehle den Kundenservice.'}"
+    )
+
+    cmd_reformat = [
+        python, "-m", "mlx_lm.generate",
+        "--model", "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+        "--system-prompt", system_prompt,
+        "--prompt", reformat_prompt,
+        "--max-tokens", "300",
+        "--temp", "0.7",
+        "--top-p", "0.9",
+    ]
+
+    try:
+        result2 = subprocess.run(cmd_reformat, capture_output=True, text=True, timeout=60)
+        cleaned = _clean_mlx_output(result2.stdout + result2.stderr, reformat_prompt)
+        cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
+        cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
+        for stop in ["<|im_end|>", "<|im_start|>", "</s>", "<|endoftext|>"]:
             if stop in cleaned:
                 cleaned = cleaned[:cleaned.index(stop)]
-        return cleaned.strip() or "⚠️ No response generated"
+        cleaned = cleaned.lstrip("! ").strip()
+        return cleaned or "Entschuldigung, ich konnte keine passende Antwort generieren."
     except subprocess.TimeoutExpired:
-        return "⚠️ Inference timed out after 180s"
+        return "⚠️ Antwortgenerierung hat zu lange gedauert."
     except Exception as e:
-        return f"❌ Inference error: {str(e)}"
+        return f"❌ Fehler: {str(e)}"

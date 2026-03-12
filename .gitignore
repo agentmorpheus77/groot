@@ -34,3 +34,8 @@ nohup.out
 # IDE
 .vscode/
 .idea/
+data/whisper/audio/
+groot.db-shm
+groot.db-wal
+*.pyc
+__pycache__/

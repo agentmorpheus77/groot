@@ -403,7 +403,10 @@ async def stream_logs(job_id: int):
 
             # Check if training process is still alive
             import subprocess as _sp
-            proc_alive = bool(_sp.run(["pgrep", "-f", f"mlx_lm.lora.*adapters/{job_id}"], capture_output=True).stdout.strip())
+            # Check if ANY mlx_lm training process is running for this job
+            # Match on adapter_path from DB since job_id may differ from adapter dir
+            adapter_dir = job.get("adapter_path", f"adapters/{job_id}") or f"adapters/{job_id}"
+            proc_alive = bool(_sp.run(["pgrep", "-f", f"mlx_lm.lora"], capture_output=True).stdout.strip())
 
             if not proc_alive and not queue_had_data:
                 # Process ended — update DB if still "running"

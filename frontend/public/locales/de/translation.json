@@ -10,7 +10,9 @@
     "datasets": "Datensätze",
     "training": "Training",
     "models": "Modelle",
-    "chat": "Chat"
+    "chat": "Chat",
+    "learnings": "📚 Learnings",
+    "whisper": "🎙️ Whisper"
   },
   "theme": {
     "toggle": "Theme wechseln",

@@ -2,7 +2,7 @@ import { Outlet, NavLink, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useTheme } from "next-themes"
 import {
-  LayoutDashboard, Database, Zap, BookOpen, MessageSquare,
+  LayoutDashboard, Database, Zap, BookOpen, MessageSquare, Mic,
   Sun, Moon, Globe, TreePine, ChevronRight, Menu, X, Store,
 } from "lucide-react"
 import { useState } from "react"
@@ -20,6 +20,8 @@ const navItems = [
   { path: "/training",  icon: Zap,             labelKey: "nav.training"  },
   { path: "/models",    icon: BookOpen,        labelKey: "nav.models"    },
   { path: "/chat",      icon: MessageSquare,   labelKey: "nav.chat"      },
+  { path: "/learnings", icon: BookOpen,        labelKey: "nav.learnings" },
+  { path: "/whisper",   icon: Mic,             labelKey: "nav.whisper"   },
 ]
 
 export default function Layout() {

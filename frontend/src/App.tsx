@@ -7,6 +7,9 @@ import Training from "./pages/Training"
 import Models from "./pages/Models"
 import Chat from "./pages/Chat"
 import ModelHub from "./pages/ModelHub"
+import Learnings from "./pages/Learnings"
+import Whisper from "./pages/Whisper"
+import WhisperReview from "./pages/WhisperReview"
 
 function App() {
   return (
@@ -28,6 +31,9 @@ function App() {
           <Route path="models" element={<Models />} />
           <Route path="chat" element={<Chat />} />
           <Route path="chat/:modelId" element={<Chat />} />
+          <Route path="learnings" element={<Learnings />} />
+          <Route path="whisper" element={<Whisper />} />
+          <Route path="whisper/review/:datasetId" element={<WhisperReview />} />
         </Route>
       </Routes>
     </Suspense>

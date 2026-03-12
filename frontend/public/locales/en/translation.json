@@ -10,7 +10,9 @@
     "datasets": "Datasets",
     "training": "Training",
     "models": "Models",
-    "chat": "Chat"
+    "chat": "Chat",
+    "learnings": "📚 Learnings",
+    "whisper": "🎙️ Whisper"
   },
   "theme": {
     "toggle": "Toggle theme",

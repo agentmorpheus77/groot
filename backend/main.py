@@ -5,7 +5,7 @@ FastAPI Backend + StaticFiles serving for React frontend
 import sys
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -18,6 +18,8 @@ from router.datasets import router as datasets_router
 from router.jobs import router as jobs_router
 from router.models import router as models_router
 from router.hub import router as hub_router
+from router.learnings import router as learnings_router
+from router.whisper import router as whisper_router
 
 # Init DB
 init_db()
@@ -41,6 +43,8 @@ app.include_router(datasets_router)
 app.include_router(jobs_router)
 app.include_router(models_router)
 app.include_router(hub_router)
+app.include_router(learnings_router)
+app.include_router(whisper_router)
 
 
 @app.get("/api/health")
@@ -61,13 +65,17 @@ if FRONTEND_DIST.exists():
         app.mount("/locales", StaticFiles(directory=str(FRONTEND_PUBLIC / "locales")), name="locales")
 
     @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
+    async def serve_spa(full_path: str, response: Response):
         # Don't intercept API routes
         if full_path.startswith("api/"):
             from fastapi import HTTPException
             raise HTTPException(404, "API endpoint not found")
         index_file = FRONTEND_DIST / "index.html"
         if index_file.exists():
+            # No-cache for HTML so browser always fetches fresh JS/CSS references
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
             return FileResponse(str(index_file))
         return {"error": "Frontend not built. Run: cd frontend && npm run build"}
 else:
